@@ -200,11 +200,19 @@ class TPBankController extends Controller
         $resp = curl_exec($curl);
         curl_close($curl);
 
+        $resp =  json_decode($resp, true);
+        if(isset($resp['status']) || !empty($resp['status']) && $resp['status'] === Response::HTTP_UNAUTHORIZED){
+            return \response()->json([
+            'code' => Response::HTTP_UNAUTHORIZED,
+            'msg' => 'Hết hiệu lực truy cập! Vui lòng đăng nhập lại!',
+            'data' => []
+        ]);
+        }
 
         return \response()->json([
             'code' => Response::HTTP_OK,
             'msg' => 'Thành công',
-            'data' => json_decode($resp, true)
+            'data' => $resp
         ]);
     }
 }
