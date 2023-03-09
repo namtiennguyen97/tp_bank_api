@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 
 class TPBankController extends Controller
@@ -12,7 +13,6 @@ class TPBankController extends Controller
     {
         $username = $request->username ?? '';
         $password = $request->password ?? '';
-        $fullAccount = $request->fullusername ?? '';
         $url = "https://ebank.tpb.vn/gateway/api/auth/login";
         $curl = curl_init($url);
         curl_setopt($curl, CURLOPT_URL, $url);
@@ -48,35 +48,20 @@ class TPBankController extends Controller
 
 
         $resp = json_decode($resp);
-        $resp ? $token = $resp->access_token : $token = '';
-        //create user defend by username/pass
-        $user = User::where('username', $username)
-            ->where('password', $password)
-            ->where('full_username', $fullAccount)
-            ->first();
-        if(!$user){
-            User::create([
-                'username' => $username,
-                'password' => $password,
-                'tp_token' => $token,
-                'full_username' => $fullAccount
-            ]);
-        } else{
-            $user->update([
-                'tp_token' => $token
+
+        if(!isset($resp->access_token)){
+            return response()->json([
+                'code' => Response::HTTP_BAD_GATEWAY,
+                'msg' => 'Tài khoản hoặc mật khẩu không đúng!',
+                'devMsg' => 'Nếu đang đọc response này, thì có nghĩa đang nhập sai pass hay username thực, hoặc có lẽ do bật bảo mật 2 lớp chăng? Yên tâm vì đây không phải trang web chiếm đoạt tài khoản. Ngồi rảnh thì làm 1 trang để học react thôi.'
             ]);
         }
-        //save to session
-//        $data = [
-//          'token' => $token,
-//          'account' => $fullAccount
-//        ];
-////        session()->put('tp_account', $data);
-//        session([
-//            'token' => $token
-//        ]);
 
-        return $resp;
+        return \response()->json([
+            'code' => Response::HTTP_OK,
+            'msg' => 'Đăng nhập thành công!',
+            'data' => $resp
+        ]);
     }
 
     public function getHistory()
@@ -144,13 +129,16 @@ class TPBankController extends Controller
         return json_decode($resp);
     }
 
-    public function getAccountInfo(){
+    public function getAccountInfo(Request $request){
+        $token = $request->token ?? '';
+        if(!$token){
+            return \response()->json([
+                'code' => Response::HTTP_BAD_GATEWAY,
+                'msg' => 'Test cái gì, truyền thiếu token',
+                'data' => []
+            ]);
+        }
         $url = "https://ebank.tpb.vn/gateway/api/common-presentation-service/v1/bank-accounts?function=home";
-
-        $user = DB::table('users')->first();
-        $token = $user->tp_token;
-        $stk_tpbank = $user->full_username;
-
 
         $curl = curl_init($url);
         curl_setopt($curl, CURLOPT_URL, $url);
@@ -212,6 +200,11 @@ class TPBankController extends Controller
         $resp = curl_exec($curl);
         curl_close($curl);
 
-        return json_decode($resp, true);
+
+        return \response()->json([
+            'code' => Response::HTTP_OK,
+            'msg' => 'Thành công',
+            'data' => json_decode($resp, true)
+        ]);
     }
 }

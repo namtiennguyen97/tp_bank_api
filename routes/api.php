@@ -19,4 +19,4 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 Route::post('/get-token',[\App\Http\Controllers\TPBankController::class,'getToken']);
 Route::get('/get-history',[\App\Http\Controllers\TPBankController::class,'getHistory']);
-Route::get('/get-account',[\App\Http\Controllers\TPBankController::class,'getAccountInfo']);
+Route::get('/get-account/',[\App\Http\Controllers\TPBankController::class,'getAccountInfo']);
